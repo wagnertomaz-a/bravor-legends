@@ -1,2 +1,3 @@
-# bravor-legends
-Game Pinball Moba
+# Bravor Legends
+
+Build web do jogo (teste).
