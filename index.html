@@ -70,7 +70,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":27293360,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":20599164,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -133,7 +133,8 @@ const engine = new Engine(GODOT_CONFIG);
 		engine.startGame({
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
-					const p = Math.min(100, Math.round(current * 100 / total));
+					// o download vai ate 90%; a tela de carregamento do Godot (tela_carregamento.gd) continua de 90 a 100%
+					const p = Math.min(90, Math.round(current * 90 / total));
 					cargaBarra.style.width = Math.max(3, p) + '%';
 					cargaTexto.textContent = 'CARREGANDO... ' + p + '%';
 				} else {
