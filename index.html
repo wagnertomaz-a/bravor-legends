@@ -37,6 +37,28 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 	box-shadow: 0 0 12px rgba(255,170,40,0.7);
 	transition: width 0.25s ease-out;
 }
+/* CELULAR EM PE: o jogo so roda deitado. Este aviso cobre tudo enquanto o aparelho estiver em pe
+   (no Android o primeiro toque ja tenta travar a tela deitada; no iPhone o Safari nao deixa travar). */
+#girar {
+	display: none; position: fixed; inset: 0; z-index: 50;
+	background: #050a1c; color: #ffd84a; text-align: center;
+	font-family: 'Noto Sans', 'Segoe UI', Arial, sans-serif;
+	flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+}
+#girar .icone {
+	width: 70px; height: 116px; border: 5px solid #ffd84a; border-radius: 14px; position: relative;
+	animation: girar-anim 1.8s ease-in-out infinite;
+}
+#girar .icone::after {
+	content: ""; position: absolute; left: 50%; bottom: 8px; width: 14px; height: 14px;
+	margin-left: -7px; border-radius: 50%; background: #ffd84a;
+}
+@keyframes girar-anim { 0%, 25% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+#girar .titulo { font-size: 26px; font-weight: 800; letter-spacing: 0.06em; text-shadow: 0 2px 6px #000; }
+#girar .sub { font-size: 16px; color: #e8ecf5; opacity: 0.85; max-width: 80%; }
+@media (orientation: portrait) and (pointer: coarse) {
+	#girar { display: flex; }
+}
 #status-notice {
 	display: none; position: absolute; left: 0; right: 0; top: 40%; z-index: 3;
 	background-color: #5b3943; border-radius: 0.5rem; border: 1px solid #9b3943;
@@ -47,6 +69,10 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 		<!-- icones: quem coloca e o proprio Godot (no "head include" logo abaixo). Nao escrever os links aqui:
 		     com a variavel da URL eles viravam "index.js.icon.png" (404) e o iPhone salvava sem icone. -->
 		<meta name="apple-mobile-web-app-title" content="Bravor Legends">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<link rel="manifest" href="manifest.json">
 		<link rel="preload" as="image" href="carregando.jpg">
 <link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
@@ -69,9 +95,44 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 			<div id="status-notice"></div>
 		</div>
 
+		<div id="girar">
+			<div class="icone"></div>
+			<div class="titulo">GIRE O CELULAR</div>
+			<div class="sub">Bravor Legends so roda na horizontal</div>
+		</div>
+
+		<script>
+// CELULAR: tela cheia + tela TRAVADA DEITADA no primeiro toque (Android/Chrome deixa; o navegador exige um toque
+// do jogador antes). No iPhone o Safari nao permite travar: fica o aviso "GIRE O CELULAR" enquanto estiver em pe.
+(function () {
+	const celular = window.matchMedia('(pointer: coarse)').matches && ('ontouchstart' in window);
+	if (!celular) {
+		return;
+	}
+	function travarDeitado() {
+		const el = document.documentElement;
+		const so = screen.orientation;
+		const tentarTravar = function () {
+			if (so && so.lock) {
+				so.lock('landscape').catch(function () {});
+			}
+		};
+		if (!document.fullscreenElement && el.requestFullscreen) {
+			el.requestFullscreen({ navigationUI: 'hide' }).then(tentarTravar, tentarTravar);
+		} else {
+			tentarTravar();
+		}
+	}
+	// todo toque tenta de novo (se o jogador sair da tela cheia, o proximo toque volta a travar)
+	['touchend', 'click'].forEach(function (ev) {
+		window.addEventListener(ev, travarDeitado, { capture: true, passive: true });
+	});
+}());
+		</script>
+
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":18271692,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":18271996,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
