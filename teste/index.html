@@ -14,7 +14,6 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 #lateral {
 	position: fixed; inset: 0; z-index: -1;
 	background: #050a1c center / auto 100% no-repeat;
-	transition: background-image 0.2s;
 }
 #canvas:focus { outline: none; }
 #status {
@@ -150,7 +149,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17185296,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17185264,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -230,12 +229,28 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		const arq = ARTES[nome];
 		if (!arq || prontas[arq] === false) { lat.style.backgroundImage = 'none'; lat.style.filter = ''; return; }
 		if (prontas[arq] === true) { pintar(nome, arq); return; }
+		if (prontas[arq] === 'baixando') { return; }
 		const im = new Image();
 		im.onload = function () { prontas[arq] = true; tamanhos[arq] = [im.naturalWidth, im.naturalHeight]; if (window._bl_lateral_atual === nome) { pintar(nome, arq); } };
 		im.onerror = function () { prontas[arq] = false; };
 		im.src = arq;
 	};
 	window._bl_lateral('carregando');
+	// baixa TODAS as artes das laterais ja no inicio (enquanto o jogo carrega): a troca de tela fica instantanea
+	Object.keys(ARTES).forEach(function (k) {
+		const arq = ARTES[k];
+		if (prontas[arq] !== undefined) { return; }
+		prontas[arq] = 'baixando';
+		const im = new Image();
+		im.onload = function () {
+			prontas[arq] = true; tamanhos[arq] = [im.naturalWidth, im.naturalHeight];
+			if (im.decode) { im.decode().catch(function () {}); }
+			if (ARTES[window._bl_lateral_atual] === arq) { pintar(window._bl_lateral_atual, arq); }
+		};
+		im.onerror = function () { prontas[arq] = false; };
+		im.src = arq;
+		window['_bl_img_' + k] = im;   // guarda a imagem (o navegador mantem decodificada)
+	});
 	// partida: zoom de abertura (mesma escala e ponto fixo do fundo do jogo) e escurecimento da contagem
 	window._bl_arena = function (z, ax, ay, escuro) {
 		const r = document.getElementById('canvas').getBoundingClientRect();
