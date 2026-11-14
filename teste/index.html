@@ -149,7 +149,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17188560,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17188576,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -178,7 +178,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 	// arte larga de cada tela (o jogo chama window._bl_lateral('<tela>')). E O MESMO arquivo que o jogo usa naquela
 	// tela (o jogo mostra so o recorte 16:9 do meio); publicar_site.ps1 copia: tela_menu/cards/arena/selecao.jpg
 	const ARTES = { carregando: 'carregando.jpg', menu: 'tela_menu.jpg', cards: 'tela_cards.jpg', arena: 'tela_arena.jpg',
-		selecao: 'tela_selecao.jpg', herois: 'tela_selecao.jpg', heroi: 'tela_selecao.jpg' };
+		selecao: 'tela_selecao.jpg', conectando: 'tela_selecao.jpg', herois: 'tela_selecao.jpg', heroi: 'tela_selecao.jpg' };
 	const F = 'rgba(5,10,28,';   // cor FUNDO do jogo (#050a1c)
 	// as mesmas camadas que cada tela desenha por cima da arte (em % da altura = igual ao jogo, que e 720 de altura)
 	function camadas(nome) {
@@ -189,6 +189,8 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 				return [];   // o escurecimento do menu ja vem na propria imagem (inteira)
 			case 'selecao':
 				return ['linear-gradient(90deg, rgba(58,141,255,0.10) 50%, rgba(255,74,74,0.10) 50%)'];
+			case 'conectando':
+				return ['linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35))'];
 			case 'herois':
 				return ['linear-gradient(rgba(3,5,15,0.3), rgba(3,5,15,0.3))'];
 			case 'heroi': {
@@ -225,7 +227,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 	}
 	window._bl_lateral = function (nome) {
 		window._bl_lateral_atual = nome;
-		if (nome !== 'arena') { lat.style.transform = ''; }
+		if (nome !== 'arena') { lat.style.transform = ''; const cv0 = document.getElementById('canvas'); cv0.style.maskImage = ''; cv0.style.webkitMaskImage = ''; }
 		const arq = ARTES[nome];
 		if (!arq || prontas[arq] === false) { lat.style.backgroundImage = 'none'; lat.style.filter = ''; return; }
 		if (prontas[arq] === true) { pintar(nome, arq); return; }
@@ -256,6 +258,18 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		const r = document.getElementById('canvas').getBoundingClientRect();
 		lat.style.transformOrigin = (r.left + ax * r.width) + 'px ' + (r.top + ay * r.height) + 'px';
 		lat.style.transform = z > 1.0001 ? ('scale(' + z + ')') : '';
+		// durante o zoom: as pontas do jogo (torres de perto) somem suave na lateral, em vez de um corte seco
+		const cv = document.getElementById('canvas');
+		const largo = window.innerWidth / window.innerHeight > 16 / 9 + 0.02;
+		if (largo && z > 1.0001) {
+			const b = Math.min(7, (z - 1) * 7).toFixed(2);
+			const m = 'linear-gradient(to right, transparent 0%, #000 ' + b + '%, #000 ' + (100 - b) + '%, transparent 100%)';
+			cv.style.webkitMaskImage = m;
+			cv.style.maskImage = m;
+		} else if (cv.style.maskImage || cv.style.webkitMaskImage) {
+			cv.style.webkitMaskImage = '';
+			cv.style.maskImage = '';
+		}
 		lat.style.filter = 'url(#cor_arena)' + (escuro > 0 ? (' brightness(' + (1 - escuro) + ')') : '');
 	};
 }());
