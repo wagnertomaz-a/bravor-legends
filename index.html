@@ -2,12 +2,19 @@
 <html lang="pt-BR">
 	<head>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, viewport-fit=cover">
 		<title>Bravor Legends</title>
 		<style>
 html, body, #canvas { margin: 0; padding: 0; border: 0; }
 body { color: white; background-color: #050a1c; overflow: hidden; touch-action: none; }
-#canvas { display: block; }
+#canvas { display: block; position: absolute; left: 0; top: 0; }
+/* LATERAIS: telas mais largas que 16:9 (ex.: iPhone 15 Pro Max deitado) - o jogo fica 16:9 no meio e as sobras
+   mostram a arte LARGA da tela aberta (o jogo avisa qual: lateral_web.gd -> window._bl_lateral). Na altura da tela e
+   centralizada, o meio da arte fica exatamente atras do jogo e as pontas continuam a cena. Sem arte: fundo escuro. */
+#lateral {
+	position: fixed; inset: 0; z-index: -1;
+	background: #050a1c center / auto 100% no-repeat;
+}
 #canvas:focus { outline: none; }
 #status {
 	position: absolute; inset: 0;
@@ -79,6 +86,16 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 	</head>
 	<body>
+		<svg width="0" height="0" style="position:absolute">
+			<filter id="cor_arena" color-interpolation-filters="sRGB">
+				<feComponentTransfer>
+					<feFuncR type="linear" slope="0.858" intercept="-0.058"/>
+					<feFuncG type="linear" slope="0.928" intercept="-0.075"/>
+					<feFuncB type="linear" slope="0.972" intercept="-0.048"/>
+				</feComponentTransfer>
+			</filter>
+		</svg>
+		<div id="lateral"></div>
 		<canvas id="canvas">
 			Seu navegador nao suporta o elemento canvas.
 		</canvas>
@@ -132,7 +149,130 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17037600,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17188576,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+// a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
+GODOT_CONFIG.canvasResizePolicy = 0;
+(function () {
+	const cv = document.getElementById('canvas');
+	function ajustar() {
+		const W = window.innerWidth;
+		const H = window.innerHeight;
+		let w = W;
+		let h = Math.round(W * 9 / 16);
+		if (h > H) {
+			h = H;
+			w = Math.round(H * 16 / 9);
+		}
+		const dpr = window.devicePixelRatio || 1;
+		cv.style.width = w + 'px';
+		cv.style.height = h + 'px';
+		cv.style.left = Math.round((W - w) / 2) + 'px';
+		cv.style.top = Math.round((H - h) / 2) + 'px';
+		cv.width = Math.round(w * dpr);
+		cv.height = Math.round(h * dpr);
+	}
+	ajustar();
+	window.addEventListener('resize', function () { ajustar(); if (window._bl_lateral_atual) { window._bl_lateral(window._bl_lateral_atual); } });
+	window.addEventListener('orientationchange', function () { setTimeout(ajustar, 250); });
+	document.addEventListener('fullscreenchange', function () { setTimeout(ajustar, 100); });
+	// arte larga de cada tela (o jogo chama window._bl_lateral('<tela>')). E O MESMO arquivo que o jogo usa naquela
+	// tela (o jogo mostra so o recorte 16:9 do meio); publicar_site.ps1 copia: tela_menu/cards/arena/selecao.jpg
+	const ARTES = { carregando: 'carregando.jpg', menu: 'tela_menu.jpg', cards: 'tela_cards.jpg', arena: 'tela_arena.jpg',
+		selecao: 'tela_selecao.jpg', conectando: 'tela_selecao.jpg', herois: 'tela_selecao.jpg', heroi: 'tela_selecao.jpg' };
+	const F = 'rgba(5,10,28,';   // cor FUNDO do jogo (#050a1c)
+	// as mesmas camadas que cada tela desenha por cima da arte (em % da altura = igual ao jogo, que e 720 de altura)
+	function camadas(nome) {
+		switch (nome) {
+			case 'carregando':
+				return ['linear-gradient(to top, ' + F + '0.92) 0%, ' + F + '0) 30%)'];
+			case 'menu':
+				return [];   // o escurecimento do menu ja vem na propria imagem (inteira)
+			case 'selecao':
+				return ['linear-gradient(90deg, rgba(58,141,255,0.10) 50%, rgba(255,74,74,0.10) 50%)'];
+			case 'conectando':
+				return ['linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35))'];
+			case 'herois':
+				return ['linear-gradient(rgba(3,5,15,0.3), rgba(3,5,15,0.3))'];
+			case 'heroi': {
+				const r = document.getElementById('canvas').getBoundingClientRect();
+				const k = r.width / 1280;
+				return ['linear-gradient(90deg, ' + F + '0.92) 0px, ' + F + '0.92) ' + r.left + 'px, ' + F + '0) ' + (r.left + 760 * k) + 'px)',
+					'linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.18))'];
+			}
+		}
+		return [];
+	}
+	const lat = document.getElementById('lateral');
+	const prontas = {};
+	const tamanhos = {};   // arq -> [largura, altura] da imagem
+	// a arte fica EXATAMENTE atras do jogo: mesma altura do canvas e o meio dela no meio do canvas (px inteiros
+	// calculados aqui, nao "center": evita meio pixel de diferenca que aparecia como uma linha na emenda)
+	function encaixe(arq) {
+		const r = document.getElementById('canvas').getBoundingClientRect();
+		const t = tamanhos[arq] || [16, 9];
+		const h = r.height;
+		const w = h * t[0] / t[1];
+		const x = r.left + (r.width - w) / 2;
+		return { tam: w + 'px ' + h + 'px', pos: x + 'px ' + r.top + 'px' };
+	}
+	function pintar(nome, arq) {
+		const cs = camadas(nome);
+		const tams = cs.map(function () { return '100% 100%'; });
+		const pos = cs.map(function () { return '0 0'; });
+		const e = encaixe(arq);
+		lat.style.backgroundImage = cs.concat(['url("' + arq + '")']).join(', ');
+		lat.style.backgroundSize = tams.concat([e.tam]).join(', ');
+		lat.style.backgroundPosition = pos.concat([e.pos]).join(', ');
+		lat.style.filter = nome === 'arena' ? 'url(#cor_arena)' : '';
+	}
+	window._bl_lateral = function (nome) {
+		window._bl_lateral_atual = nome;
+		if (nome !== 'arena') { lat.style.transform = ''; const cv0 = document.getElementById('canvas'); cv0.style.maskImage = ''; cv0.style.webkitMaskImage = ''; }
+		const arq = ARTES[nome];
+		if (!arq || prontas[arq] === false) { lat.style.backgroundImage = 'none'; lat.style.filter = ''; return; }
+		if (prontas[arq] === true) { pintar(nome, arq); return; }
+		if (prontas[arq] === 'baixando') { return; }
+		const im = new Image();
+		im.onload = function () { prontas[arq] = true; tamanhos[arq] = [im.naturalWidth, im.naturalHeight]; if (window._bl_lateral_atual === nome) { pintar(nome, arq); } };
+		im.onerror = function () { prontas[arq] = false; };
+		im.src = arq;
+	};
+	window._bl_lateral('carregando');
+	// baixa TODAS as artes das laterais ja no inicio (enquanto o jogo carrega): a troca de tela fica instantanea
+	Object.keys(ARTES).forEach(function (k) {
+		const arq = ARTES[k];
+		if (prontas[arq] !== undefined) { return; }
+		prontas[arq] = 'baixando';
+		const im = new Image();
+		im.onload = function () {
+			prontas[arq] = true; tamanhos[arq] = [im.naturalWidth, im.naturalHeight];
+			if (im.decode) { im.decode().catch(function () {}); }
+			if (ARTES[window._bl_lateral_atual] === arq) { pintar(window._bl_lateral_atual, arq); }
+		};
+		im.onerror = function () { prontas[arq] = false; };
+		im.src = arq;
+		window['_bl_img_' + k] = im;   // guarda a imagem (o navegador mantem decodificada)
+	});
+	// partida: zoom de abertura (mesma escala e ponto fixo do fundo do jogo) e escurecimento da contagem
+	window._bl_arena = function (z, ax, ay, escuro) {
+		const r = document.getElementById('canvas').getBoundingClientRect();
+		lat.style.transformOrigin = (r.left + ax * r.width) + 'px ' + (r.top + ay * r.height) + 'px';
+		lat.style.transform = z > 1.0001 ? ('scale(' + z + ')') : '';
+		// durante o zoom: as pontas do jogo (torres de perto) somem suave na lateral, em vez de um corte seco
+		const cv = document.getElementById('canvas');
+		const largo = window.innerWidth / window.innerHeight > 16 / 9 + 0.02;
+		if (largo && z > 1.0001) {
+			const b = Math.min(7, (z - 1) * 7).toFixed(2);
+			const m = 'linear-gradient(to right, transparent 0%, #000 ' + b + '%, #000 ' + (100 - b) + '%, transparent 100%)';
+			cv.style.webkitMaskImage = m;
+			cv.style.maskImage = m;
+		} else if (cv.style.maskImage || cv.style.webkitMaskImage) {
+			cv.style.webkitMaskImage = '';
+			cv.style.maskImage = '';
+		}
+		lat.style.filter = 'url(#cor_arena)' + (escuro > 0 ? (' brightness(' + (1 - escuro) + ')') : '');
+	};
+}());
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
