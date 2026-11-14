@@ -2,12 +2,21 @@
 <html lang="pt-BR">
 	<head>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, viewport-fit=cover">
 		<title>Bravor Legends</title>
 		<style>
 html, body, #canvas { margin: 0; padding: 0; border: 0; }
 body { color: white; background-color: #050a1c; overflow: hidden; touch-action: none; }
-#canvas { display: block; }
+#canvas { display: block; position: absolute; left: 0; top: 0; }
+/* LATERAIS: telas mais largas que 16:9 (ex.: iPhone 15 Pro Max deitado) - o jogo fica 16:9 no meio e as sobras
+   mostram uma arte de fundo em vez de faixas pretas. Arte propria: fundo_lateral.jpg (se existir); senao a imagem
+   do carregamento borrada e escurecida. */
+#lateral {
+	position: fixed; inset: -40px; z-index: -1;
+	background: #050a1c url("carregando.jpg") center / cover no-repeat;
+	filter: blur(18px) brightness(0.55) saturate(1.15);
+}
+#lateral.arte { inset: 0; filter: none; background-image: url("fundo_lateral.jpg"); }
 #canvas:focus { outline: none; }
 #status {
 	position: absolute; inset: 0;
@@ -79,6 +88,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 	</head>
 	<body>
+		<div id="lateral"></div>
 		<canvas id="canvas">
 			Seu navegador nao suporta o elemento canvas.
 		</canvas>
@@ -132,7 +142,37 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17037600,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17040912,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+// a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
+GODOT_CONFIG.canvasResizePolicy = 0;
+(function () {
+	const cv = document.getElementById('canvas');
+	function ajustar() {
+		const W = window.innerWidth;
+		const H = window.innerHeight;
+		let w = W;
+		let h = Math.round(W * 9 / 16);
+		if (h > H) {
+			h = H;
+			w = Math.round(H * 16 / 9);
+		}
+		const dpr = window.devicePixelRatio || 1;
+		cv.style.width = w + 'px';
+		cv.style.height = h + 'px';
+		cv.style.left = Math.round((W - w) / 2) + 'px';
+		cv.style.top = Math.round((H - h) / 2) + 'px';
+		cv.width = Math.round(w * dpr);
+		cv.height = Math.round(h * dpr);
+	}
+	ajustar();
+	window.addEventListener('resize', ajustar);
+	window.addEventListener('orientationchange', function () { setTimeout(ajustar, 250); });
+	document.addEventListener('fullscreenchange', function () { setTimeout(ajustar, 100); });
+	// arte propria das laterais, se ja existir no site
+	const teste = new Image();
+	teste.onload = function () { document.getElementById('lateral').classList.add('arte'); };
+	teste.src = 'fundo_lateral.jpg';
+}());
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
