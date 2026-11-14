@@ -141,7 +141,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17300488,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17301880,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -187,8 +187,15 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		im.src = arq;
 	};
 	const orig = window._bl_lateral;
-	window._bl_lateral = function (nome) { window._bl_lateral_atual = nome; orig(nome); };
+	window._bl_lateral = function (nome) { window._bl_lateral_atual = nome; if (nome !== 'arena') { lat.style.transform = ''; lat.style.filter = ''; } orig(nome); };
 	window._bl_lateral('carregando');
+	// partida: zoom de abertura (mesma escala e ponto fixo do fundo do jogo) e escurecimento da contagem
+	window._bl_arena = function (z, ax, ay, escuro) {
+		const r = document.getElementById('canvas').getBoundingClientRect();
+		lat.style.transformOrigin = (r.left + ax * r.width) + 'px ' + (r.top + ay * r.height) + 'px';
+		lat.style.transform = z > 1.0001 ? ('scale(' + z + ')') : '';
+		lat.style.filter = escuro > 0 ? ('brightness(' + (1 - escuro) + ')') : '';
+	};
 }());
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
