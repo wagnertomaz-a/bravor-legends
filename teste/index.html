@@ -150,7 +150,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17250032,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17185104,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -187,9 +187,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 			case 'carregando':
 				return ['linear-gradient(to top, ' + F + '0.92) 0%, ' + F + '0) 30%)'];
 			case 'menu':
-				return ['linear-gradient(to bottom, ' + F + '0.8) 0%, ' + F + '0) 9.72%)',
-					'linear-gradient(to top, ' + F + '0.85) 0%, ' + F + '0) 23.6%)',
-					'linear-gradient(rgba(0,0,0,0.22), rgba(0,0,0,0.22))'];
+				return [];   // o escurecimento do menu ja vem na propria imagem (inteira)
 			case 'selecao':
 				return ['linear-gradient(90deg, rgba(58,141,255,0.10) 50%, rgba(255,74,74,0.10) 50%)'];
 			case 'herois':
