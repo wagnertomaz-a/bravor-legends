@@ -173,7 +173,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		cv.height = Math.round(h * dpr);
 	}
 	ajustar();
-	window.addEventListener('resize', ajustar);
+	window.addEventListener('resize', function () { ajustar(); if (window._bl_lateral_atual) { window._bl_lateral(window._bl_lateral_atual); } });
 	window.addEventListener('orientationchange', function () { setTimeout(ajustar, 250); });
 	document.addEventListener('fullscreenchange', function () { setTimeout(ajustar, 100); });
 	// arte larga de cada tela (o jogo chama window._bl_lateral('<tela>')). E O MESMO arquivo que o jogo usa naquela
@@ -205,11 +205,25 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 	}
 	const lat = document.getElementById('lateral');
 	const prontas = {};
+	const tamanhos = {};   // arq -> [largura, altura] da imagem
+	// a arte fica EXATAMENTE atras do jogo: mesma altura do canvas e o meio dela no meio do canvas (px inteiros
+	// calculados aqui, nao "center": evita meio pixel de diferenca que aparecia como uma linha na emenda)
+	function encaixe(arq) {
+		const r = document.getElementById('canvas').getBoundingClientRect();
+		const t = tamanhos[arq] || [16, 9];
+		const h = r.height;
+		const w = h * t[0] / t[1];
+		const x = r.left + (r.width - w) / 2;
+		return { tam: w + 'px ' + h + 'px', pos: x + 'px ' + r.top + 'px' };
+	}
 	function pintar(nome, arq) {
 		const cs = camadas(nome);
 		const tams = cs.map(function () { return '100% 100%'; });
+		const pos = cs.map(function () { return '0 0'; });
+		const e = encaixe(arq);
 		lat.style.backgroundImage = cs.concat(['url("' + arq + '")']).join(', ');
-		lat.style.backgroundSize = tams.concat(['auto 100%']).join(', ');
+		lat.style.backgroundSize = tams.concat([e.tam]).join(', ');
+		lat.style.backgroundPosition = pos.concat([e.pos]).join(', ');
 		lat.style.filter = nome === 'arena' ? 'url(#cor_arena)' : '';
 	}
 	window._bl_lateral = function (nome) {
@@ -219,7 +233,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		if (!arq || prontas[arq] === false) { lat.style.backgroundImage = 'none'; lat.style.filter = ''; return; }
 		if (prontas[arq] === true) { pintar(nome, arq); return; }
 		const im = new Image();
-		im.onload = function () { prontas[arq] = true; if (window._bl_lateral_atual === nome) { pintar(nome, arq); } };
+		im.onload = function () { prontas[arq] = true; tamanhos[arq] = [im.naturalWidth, im.naturalHeight]; if (window._bl_lateral_atual === nome) { pintar(nome, arq); } };
 		im.onerror = function () { prontas[arq] = false; };
 		im.src = arq;
 	};
