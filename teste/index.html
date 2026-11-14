@@ -141,7 +141,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17301880,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17016736,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -168,13 +168,21 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 	window.addEventListener('orientationchange', function () { setTimeout(ajustar, 250); });
 	document.addEventListener('fullscreenchange', function () { setTimeout(ajustar, 100); });
 	// arte larga de cada tela (o jogo chama window._bl_lateral('<tela>'))
-	const ARTES = { carregando: 'carregando.jpg', arena: 'fundo_lateral.jpg', herois: 'lateral_menu.jpg' };
+	const ARTES = { carregando: 'carregando.jpg', arena: 'fundo_lateral.jpg', herois: 'lateral_selecao.jpg', heroi: 'lateral_selecao.jpg' };
+	// o mesmo escurecimento/tom que cada tela poe por cima do proprio fundo
+	const AJUSTE = {
+		herois: { filtro: 'brightness(0.7)' },
+		heroi: { filtro: 'brightness(0.82)' },
+		selecao: { tom: 'linear-gradient(90deg, rgba(89,166,255,0.10) 50%, rgba(255,92,82,0.10) 50%), ' }
+	};
 	const lat = document.getElementById('lateral');
 	const prontas = {};
 	window._bl_lateral = function (nome) {
 		const arq = ARTES[nome] || ('lateral_' + nome + '.jpg');
+		const aj = AJUSTE[nome] || {};
+		if (nome !== 'arena') { lat.style.filter = aj.filtro || ''; }
 		if (prontas[arq] === true) {
-			lat.style.backgroundImage = 'url("' + arq + '")';
+			lat.style.backgroundImage = (aj.tom || '') + 'url("' + arq + '")';
 			return;
 		}
 		if (prontas[arq] === false) {
@@ -182,7 +190,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 			return;
 		}
 		const im = new Image();
-		im.onload = function () { prontas[arq] = true; if (window._bl_lateral_atual === nome) { lat.style.backgroundImage = 'url("' + arq + '")'; } };
+		im.onload = function () { prontas[arq] = true; if (window._bl_lateral_atual === nome) { lat.style.backgroundImage = (aj.tom || '') + 'url("' + arq + '")'; } };
 		im.onerror = function () { prontas[arq] = false; if (window._bl_lateral_atual === nome) { lat.style.backgroundImage = 'none'; } };
 		im.src = arq;
 	};
