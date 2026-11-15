@@ -149,7 +149,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17206688,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":17256300,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -223,7 +223,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		lat.style.backgroundImage = cs.concat(['url("' + arq + '")']).join(', ');
 		lat.style.backgroundSize = tams.concat([e.tam]).join(', ');
 		lat.style.backgroundPosition = pos.concat([e.pos]).join(', ');
-		lat.style.filter = nome === 'arena' ? 'url(#cor_arena)' : '';
+		lat.style.filter = '';   // a cor da arena ja vem na imagem do site (tela_arena.jpg, site_extra): sem filtro = mais leve
 	}
 	window._bl_lateral = function (nome) {
 		window._bl_lateral_atual = nome;
@@ -270,7 +270,7 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 			cv.style.webkitMaskImage = '';
 			cv.style.maskImage = '';
 		}
-		lat.style.filter = 'url(#cor_arena)' + (escuro > 0 ? (' brightness(' + (1 - escuro) + ')') : '');
+		lat.style.filter = escuro > 0 ? ('brightness(' + (1 - escuro) + ')') : '';
 	};
 }());
 const GODOT_THREADS_ENABLED = false;
