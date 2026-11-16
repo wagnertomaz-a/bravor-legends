@@ -149,7 +149,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":19786612,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":20089360,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -247,6 +247,22 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		im.src = arq;
 	};
 	window._bl_lateral('carregando');
+	// o jogo pede (lateral_web.gd, ja no menu) para baixar antes as artes da tela de cada campeao (heroi_<id>.jpg)
+	window._bl_prefetch = function (arqs) {
+		arqs.forEach(function (arq) {
+			if (prontas[arq] !== undefined) { return; }
+			prontas[arq] = 'baixando';
+			const im = new Image();
+			im.onload = function () {
+				prontas[arq] = true; tamanhos[arq] = [im.naturalWidth, im.naturalHeight];
+				if (im.decode) { im.decode().catch(function () {}); }
+				if (window._bl_lateral_atual && window._bl_lateral_atual + '.jpg' === arq) { pintar(window._bl_lateral_atual, arq); }
+			};
+			im.onerror = function () { prontas[arq] = false; };
+			im.src = arq;
+			window['_bl_img_' + arq] = im;
+		});
+	};
 	// baixa TODAS as artes das laterais ja no inicio (enquanto o jogo carrega): a troca de tela fica instantanea
 	Object.keys(ARTES).forEach(function (k) {
 		const arq = ARTES[k];
