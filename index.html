@@ -149,7 +149,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":19551972,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":19582972,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -239,7 +239,8 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 		window._bl_lateral_atual = nome;
 		if (nome !== 'arena') { lat.style.transform = ''; const cv0 = document.getElementById('canvas'); cv0.style.maskImage = ''; cv0.style.webkitMaskImage = ''; }
 		// heroi_<id>: imagem do campeao (publicar_site.ps1 copia campeoes/fundos/<id>.jpg como heroi_<id>.jpg)
-		const arq = ARTES[nome] || (nome.indexOf('heroi_') === 0 ? nome + '.jpg' : undefined);
+		// livre_<arquivo>: a arte inteira sem camadas (19/11: tela "voce recebeu um novo heroi" do treino)
+		const arq = ARTES[nome] || (nome.indexOf('heroi_') === 0 ? nome + '.jpg' : (nome.indexOf('livre_') === 0 ? nome.substring(6) + '.jpg' : undefined));
 		if (!arq || prontas[arq] === false) { lat.style.backgroundImage = 'none'; lat.style.filter = ''; return; }
 		if (prontas[arq] === true) { pintar(nome, arq); return; }
 		if (prontas[arq] === 'baixando') { return; }
