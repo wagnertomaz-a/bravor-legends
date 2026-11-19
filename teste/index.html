@@ -149,7 +149,7 @@ body { color: white; background-color: #050a1c; overflow: hidden; touch-action: 
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":19500552,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":19502176,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 // a pagina decide o tamanho do jogo: sempre 16:9, centralizado (as sobras mostram o #lateral)
 GODOT_CONFIG.canvasResizePolicy = 0;
 (function () {
@@ -178,7 +178,9 @@ GODOT_CONFIG.canvasResizePolicy = 0;
 	// arte larga de cada tela (o jogo chama window._bl_lateral('<tela>')). E O MESMO arquivo que o jogo usa naquela
 	// tela (o jogo mostra so o recorte 16:9 do meio); publicar_site.ps1 copia: tela_menu/cards/arena/selecao.jpg
 	const ARTES = { carregando: 'carregando.jpg', menu: 'tela_menu.jpg', cards: 'tela_cards.jpg', arena: 'tela_arena.jpg',
-		selecao: 'tela_selecao.jpg', conectando: 'tela_selecao.jpg', herois: 'tela_selecao.jpg', heroi: 'tela_selecao.jpg' };
+		selecao: 'tela_selecao.jpg', conectando: 'tela_selecao.jpg', herois: 'tela_selecao.jpg', heroi: 'tela_selecao.jpg',
+		// 18/11: telas por cima do menu (lateral_tela.gd): login = arte do carregamento sem escurecer; pergunta da 1a vez
+		login: 'carregando.jpg', pergunta: 'lateral_pergunta.jpg' };
 	const F = 'rgba(5,10,28,';   // cor FUNDO do jogo (#050a1c)
 	// as mesmas camadas que cada tela desenha por cima da arte (em % da altura = igual ao jogo, que e 720 de altura)
 	function camadas(nome) {
