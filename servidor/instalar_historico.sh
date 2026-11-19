@@ -21,6 +21,12 @@ if [ ! -s "$DIR/segredo" ]; then
   head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 40 > "$DIR/segredo"
 fi
 chmod 755 "$DIR"; chmod 644 "$DIR/historico.py" "$DIR/segredo"
+# senha do PAINEL (jogadores por dia, horarios, contas): criada uma vez; para trocar, apague o arquivo e rode de novo
+if [ ! -s "$DIR/painel_senha" ]; then
+  head -c 48 /dev/urandom | base64 | tr -dc 'a-km-z2-9' | head -c 12 > "$DIR/painel_senha"
+fi
+chmod 600 "$DIR/painel_senha"
+[ -f "$DIR/supabase_admin" ] && chmod 600 "$DIR/supabase_admin"
 
 echo "== 2/5 servico"
 cat > /etc/systemd/system/bravor-historico.service <<EOF
@@ -91,4 +97,8 @@ echo
 echo -n "historico (pela internet): "; curl -s https://sp.bravorlegends.com.br/api/saude || echo "FALHOU"
 echo
 systemctl is-active bravor-historico
+echo
+echo "PAINEL: https://sp.bravorlegends.com.br/api/painel"
+echo "Senha do painel: $(cat $DIR/painel_senha)"
+echo
 echo "Pronto. Agora rode: atualizar-bravor"
