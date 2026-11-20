@@ -16,6 +16,9 @@ Rotas (o Caddy manda https://sp.bravorlegends.com.br/api/... para ca, sem o "/ap
   GET  /partida/<id>              -> numeros completos de uma partida (para a tela de MVP)
   POST /interno/conta             -> {"token"} -> {"uid","nick"}   (so o servidor de jogo; com X-Segredo)
   POST /interno/partida           -> grava uma partida              (so o servidor de jogo; com X-Segredo)
+  POST /offline                   -> 20/11: partida OFFLINE (contra bots) do jogador logado: o proprio jogo manda os
+                                     numeros no fim (Authorization do login). Grava com sala "OFFLINE"; so o lado
+                                     "eu" fica com a conta (os outros sao bots). No maximo 1 a cada 60 s por conta.
   POST /acesso                    -> o jogo avisa que esta aberto (ao abrir e a cada 5 min): {"aparelho","plat"}
                                      + Authorization do login (opcional). Sem IP: so um codigo aleatorio do aparelho.
   GET  /painel                    -> PAINEL do Wagner (pagina): jogadores por dia, horarios, contas
@@ -47,6 +50,10 @@ PING_MIN = 240              # o mesmo aparelho so conta de novo depois de 4 min 
 SESSAO_NOVA = 1800          # 30 min sem aviso = nova sessao
 ORIGENS = ["https://jogar.bravorlegends.com.br", "http://localhost", "http://127.0.0.1"]
 LISTA_MAX = 30
+SALA_OFFLINE = "OFFLINE"    # 20/11: marca das partidas offline (contra bots, gravadas pelo proprio jogo)
+OFFLINE_INTERVALO = 60      # segundos minimos entre duas partidas offline da mesma conta
+OFFLINE_DURACAO_MIN = 60    # partida offline com menos de 1 min de jogo nao entra
+_ult_offline = {}           # uid -> ultima partida offline gravada (unix)
 CORPO_MAX = 64 * 1024
 
 _trava = threading.Lock()
@@ -183,23 +190,25 @@ def gravar_partida(d):
 def lista_da_conta(uid):
     with _trava:
         linhas = DB.execute("""
-            SELECT j.partida_id, p.data, p.duracao, j.venceu, j.champ, j.titulo, j.abates, j.mortes, j.assist, j.dano, j.nota, j.lado
+            SELECT j.partida_id, p.data, p.duracao, j.venceu, j.champ, j.titulo, j.abates, j.mortes, j.assist, j.dano, j.nota, j.lado, p.sala
             FROM jogadores j JOIN partidas p ON p.id = j.partida_id
             WHERE j.uid = ? ORDER BY j.partida_id DESC LIMIT ?""", (uid, LISTA_MAX)).fetchall()
         tot = DB.execute("SELECT COUNT(*), SUM(venceu), SUM(titulo = 'MVP') FROM jogadores WHERE uid = ?", (uid,)).fetchone()
     lista = [{"id": l[0], "data": l[1], "duracao": l[2], "venceu": bool(l[3]), "champ": l[4], "titulo": l[5],
-              "abates": l[6], "mortes": l[7], "assist": l[8], "dano": l[9], "nota": l[10], "lado": l[11]} for l in linhas]
+              "abates": l[6], "mortes": l[7], "assist": l[8], "dano": l[9], "nota": l[10], "lado": l[11],
+              "modo": "offline" if (l[12] or "") == SALA_OFFLINE else "online"} for l in linhas]
     return {"partidas": lista, "total": tot[0] or 0, "vitorias": tot[1] or 0, "mvps": tot[2] or 0}
 
 
 def partida(pid):
     with _trava:
-        l = DB.execute("SELECT id, data, dados FROM partidas WHERE id = ?", (pid,)).fetchone()
+        l = DB.execute("SELECT id, data, dados, sala FROM partidas WHERE id = ?", (pid,)).fetchone()
     if not l:
         return None
     d = json.loads(l[2])
     d["id"] = l[0]
     d["data"] = l[1]
+    d["modo"] = "offline" if (l[3] or "") == SALA_OFFLINE else "online"
     for j in d.get("jogadores", []):
         j.pop("uid", None)   # quem jogou nao sai daqui: so o nome/nick
     return d
@@ -310,7 +319,7 @@ def painel_dados(dias):
                    MIN(a.ts), MAX(a.ts), COUNT(DISTINCT a.dia), SUM(a.inicio) FROM acessos a
             WHERE a.uid != '' GROUP BY a.uid ORDER BY MAX(a.ts) DESC LIMIT 200""").fetchall()
         part = dict(DB.execute(
-            "SELECT strftime('%Y-%m-%d', data + ?, 'unixepoch'), COUNT(*) FROM partidas WHERE data >= ? GROUP BY 1",
+            "SELECT strftime('%Y-%m-%d', data + ?, 'unixepoch'), COUNT(*) FROM partidas WHERE data >= ? AND IFNULL(sala, '') != 'OFFLINE' GROUP BY 1",
             (FUSO, agora - 86400 * (dias + 1))).fetchall())
         ultimos = DB.execute("""
             SELECT ts, nick, plat, uid != '' FROM acessos WHERE inicio = 1 ORDER BY ts DESC LIMIT 25""").fetchall()
@@ -381,6 +390,41 @@ class Pedido(BaseHTTPRequestHandler):
         except ValueError:
             return None
 
+    # 20/11: partida OFFLINE do jogador logado (o jogo manda no fim da partida contra bots)
+    def _offline(self):
+        auth = self.headers.get("Authorization", "")
+        uid, nick = conta_do_token(auth[7:] if auth.startswith("Bearer ") else "")
+        if not uid:
+            return self._json(401, {"erro": "login"})
+        d = self._corpo()
+        if not isinstance(d, dict) or not isinstance(d.get("jogadores"), list):
+            return self._json(400, {"erro": "corpo"})
+        if _num(d.get("duracao")) < OFFLINE_DURACAO_MIN:
+            return self._json(400, {"erro": "curta"})
+        eu = int(_num(d.get("eu"), -1))
+        if eu not in range(6):
+            return self._json(400, {"erro": "lado"})
+        agora = time.time()
+        with _trava:
+            if agora - _ult_offline.get(uid, 0) < OFFLINE_INTERVALO:
+                return self._json(429, {"erro": "espera"})
+            _ult_offline[uid] = agora
+        for j in d["jogadores"]:
+            if not isinstance(j, dict):
+                return self._json(400, {"erro": "corpo"})
+            meu = int(_num(j.get("lado"), -1)) == eu
+            # so o lado do jogador fica com a conta; os outros sao sempre bots (o jogo nao escolhe a conta de ninguem)
+            j["uid"] = uid if meu else ""
+            j["bot"] = not meu
+            j["nome"] = (nick or str(j.get("nome") or "Jogador")) if meu else "Bot"
+        d["sala"] = SALA_OFFLINE
+        pid = gravar_partida(d)
+        if not pid:
+            with _trava:
+                _ult_offline.pop(uid, None)
+            return self._json(400, {"erro": "dados"})
+        return self._json(200, {"id": pid})
+
     def do_OPTIONS(self):
         self.send_response(204)
         self._cors()
@@ -436,6 +480,8 @@ class Pedido(BaseHTTPRequestHandler):
                 nick = re.sub(r"[\x00-\x1f]", "", str(d.get("nick") or ""))[:16]
             ok = registrar_acesso(str(d.get("aparelho") or ""), str(d.get("plat") or ""), uid or "", nick or "")
             return self._json(200 if ok else 400, {"ok": ok})
+        if cam == "/offline":
+            return self._offline()
         if not cam.startswith("/interno/") or not self._interno_ok():
             return self._json(403, {"erro": "proibido"})
         d = self._corpo()
